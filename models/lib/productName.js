@@ -9,7 +9,7 @@ function productNameOrDefault(productName) {
     const trimmed = productName.trim();
     if (trimmed.length > 0) return trimmed;
   }
-  return 'WeKan';
+  return 'imagen';
 }
 
 export { productNameOrDefault };
