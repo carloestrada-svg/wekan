@@ -1,0 +1,56 @@
+# ==============================================================================
+# ETAPA 1: Compilación de producción con Node 24 y versión fija de Meteor 3
+# ==============================================================================
+FROM node:24-bookworm AS builder
+
+# 1. Herramientas del sistema: uso de libarchive-tools en lugar del paquete heredado
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    git \
+    python3 \
+    make \
+    g++ \
+    libarchive-tools \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# 2. Instalación de la versión exacta de Meteor declarada en .meteor/release (3.5.2-beta.0)
+ENV METEOR_ALLOW_SUPERUSER=true
+RUN curl "https://install.meteor.com/?release=3.5.2-beta.0" | sh
+
+# 3. Instalación determinista de dependencias con npm ci usando el package-lock.json del repo
+COPY package.json package-lock.json ./
+RUN npm ci --legacy-peer-deps
+
+# 4. Copia del código fuente local modificado
+COPY . .
+
+# 5. Compilación del bundle de producción (servidor web Node.js)
+ENV NODE_OPTIONS="--max-old-space-size=4096"
+RUN meteor build --directory /build --server-only --allow-superuser
+
+# 6. Instalación reproducible de dependencias del servidor compilado
+WORKDIR /build/bundle/programs/server
+RUN if [ -f package-lock.json ]; then npm ci --omit=dev; else npm install --omit=dev; fi
+
+# ==============================================================================
+# ETAPA 2: Runtime optimizado para Railway (Node 24)
+# ==============================================================================
+FROM node:24-bookworm-slim AS runner
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copiar el bundle de producción compilado
+COPY --from=builder /build/bundle /app/bundle
+
+ENV NODE_ENV=production
+ENV PORT=8080
+
+# Comprobación de arranque y enlace al $PORT inyectado por Railway con paso de señales (exec)
+CMD ["sh", "-c", "export PORT=${PORT:-8080}; echo \"==> Starting WeKan on port $PORT...\"; exec node /app/bundle/main.js"]
