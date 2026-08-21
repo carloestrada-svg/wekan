@@ -634,6 +634,19 @@ body.mobile-mode #header-quick-access .allBoards {
   flex-shrink: 0;
 }
 
+#header-quick-access .header-logo img {
+  height: 27px;
+  width: auto;
+  display: block;
+  filter: brightness(0) invert(1);
+  transition: filter 0.3s ease;
+}
+
+body.board-color-cleanlight #header-quick-access .header-logo img,
+#header-quick-access.board-color-cleanlight .header-logo img {
+  filter: none;
+}
+
 #header-quick-access .mobile-mode-toggle {
   display: flex;
   align-items: center;
@@ -1502,6 +1515,16 @@ body.mobile-mode #header-quick-access .allBoards {
    tooltips and the popups are unchanged, so nothing becomes unreachable. */
 @media screen and (min-width: 801px) and (max-width: 1000px) {
   #header #header-main-bar .board-header-btn i.fa + span {
+    display: none;
+  }
+}
+
+/* Tablet and compact desktop: below 1250px (iPad, laptops, split-screen), drop
+   the text labels of the board controls in the quick-access bar to icons only.
+   Saves ~450px of width so the bar fits on a single line instead of wrapping into
+   multiple rows. Tooltips, badges, active states and click actions are preserved. */
+@media screen and (max-width: 1250px) {
+  #header-quick-access .board-header-controls .board-header-btn-label {
     display: none;
   }
 }
